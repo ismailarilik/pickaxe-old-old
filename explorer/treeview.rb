@@ -1,3 +1,4 @@
+require 'find'
 require 'tk'
 require_relative 'file'
 
@@ -122,9 +123,23 @@ module Pickaxe
       end
 
       def open_folder(folder_path)
-        files = Dir.glob '**/*', base: folder_path
-        files.map! do |relative_file_path|
-          file_path = ::File.join folder_path, relative_file_path
+        # Find all file paths except ones inside .git
+        file_paths = []
+        Find.find(folder_path) do |path|
+          if FileTest.directory?(path)
+            if ::File.basename(path) == '.git'
+              Find.prune
+            else
+              file_paths << path
+            end
+          else
+            file_paths << path
+          end
+        end
+        # Remove the first file path since it is itself of the folder path
+        file_paths.shift
+
+        files = file_paths.map do |file_path|
           File.new file_path
         end
         # Sort by names, case-insensitive
